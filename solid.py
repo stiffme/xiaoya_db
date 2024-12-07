@@ -92,11 +92,10 @@ s_ext = [
     ".ssa"
 ]
 
-created_files = []
-deleted_files = []
 emby_endpoint = os.environ.get('EMBY_ENDPOINT')
 emby_apikey = os.environ.get('EMBY_API_KEY')
-
+created_files = []
+deleted_files = []
 # CF blocks urllib...
 
 custom_user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36"
@@ -590,13 +589,14 @@ async def main() :
         else:
             os.remove(tempdb)
     logger.info("Informing emby")
-    logger.info(f"File created {created_files}")
-    logger.info(f"File deleted {deleted_files}")
+    
     if len(created_files) > 0:
+        logger.info(f"File created {created_files}")
         inform_emby(created_files, "Created")
         created_files = []
 
     if len(deleted_files) > 0:
+        logger.info(f"File deleted {deleted_files}")
         inform_emby(deleted_files, "Deleted")
         deleted_files = []
     

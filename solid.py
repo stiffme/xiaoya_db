@@ -19,7 +19,7 @@ import aiohttp
 from aiohttp import ClientSession, TCPConnector
 import aiosqlite
 import aiofiles.os as aio_os
-
+import requests
 
 
 logging.basicConfig(
@@ -94,6 +94,8 @@ s_ext = [
 
 created_files = []
 deleted_files = []
+emby_endpoint = os.environ.get('EMBY_ENDPOINT')
+emby_apikey = os.environ.get('EMBY_API_KEY')
 
 # CF blocks urllib...
 
@@ -453,6 +455,22 @@ def get_paths_from_bitmap(bitmap, paths_all):
             selected_paths.append(paths_all[i])
     return selected_paths
 
+def inform_emby(files_list, updateType):
+    try:
+        emby_url = f'{emby_url}/Library/Media/Updated?api_key={emby_apikey}'
+        logger.info(f"Updating to emby with event type {updateType}")
+        files_list = [{'Path': x, "UpdateType": "Created"} for x in files_list]
+        created_object = {
+            "Updates": files_list
+        }
+        logger.info("Informing created files to emby")
+        response = requests.post(emby_url, json=created_object)
+        if response.ok:
+            logger.info("Informed files to emby")
+        else:
+            logger.info(f"Failed to inform files to emby {response.status_code}")
+    except Exception as e:
+        logger.info(f"Exception happens {e}")
 
 async def main() :
     parser = argparse.ArgumentParser()
@@ -571,8 +589,15 @@ async def main() :
             os.rename(tempdb, localdb)
         else:
             os.remove(tempdb)
+    logger.info("Informing emby")
+    logger.info(f"File created {created_files}")
+    logger.info(f"File deleted {deleted_files}")
+    if len(created_files) > 0:
+        inform_emby(created_files, "Created")
+
+    if len(deleted_files) > 0:
+        inform_emby(created_files, "Deleted")
     
-        
     logger.info("Finished...")
     
 

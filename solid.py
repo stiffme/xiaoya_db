@@ -596,7 +596,7 @@ async def main() :
         inform_emby(created_files, "Created")
 
     if len(deleted_files) > 0:
-        inform_emby(created_files, "Deleted")
+        inform_emby(deleted_files, "Deleted")
     
     logger.info("Finished...")
     

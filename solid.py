@@ -593,12 +593,12 @@ async def main() :
     if len(created_files) > 0:
         logger.info(f"File created {created_files}")
         inform_emby(created_files, "Created")
-        created_files = []
+        created_files.clear()
 
     if len(deleted_files) > 0:
         logger.info(f"File deleted {deleted_files}")
         inform_emby(deleted_files, "Deleted")
-        deleted_files = []
+        deleted_files.clear()
     
     logger.info("Finished...")
     

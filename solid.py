@@ -457,7 +457,7 @@ def get_paths_from_bitmap(bitmap, paths_all):
 
 def inform_emby(files_list, updateType):
     try:
-        emby_url = f'{emby_url}/Library/Media/Updated?api_key={emby_apikey}'
+        emby_url = f'{emby_endpoint}/Library/Media/Updated?api_key={emby_apikey}'
         logger.info(f"Updating to emby with event type {updateType}")
         files_list = [{'Path': x, "UpdateType": "Created"} for x in files_list]
         created_object = {

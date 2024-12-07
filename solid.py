@@ -92,6 +92,9 @@ s_ext = [
     ".ssa"
 ]
 
+created_files = []
+deleted_files = []
+
 # CF blocks urllib...
 
 custom_user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36"
@@ -243,6 +246,8 @@ async def download(file, session, **kwargs):
                         logger.debug("Finish to write file: %s", filename)
                     os.chmod(file_path, 0o777)
                     logger.info("Downloaded: %s", filename)
+                    if filename.lower().endswith('.strm'):
+                        created_files.append(file_path)
                 else:
                     logger.error("Failed to download: %s [Response code: %s]", filename, response.status)
         except Exception as e:
@@ -393,6 +398,7 @@ async def purge_removed_files(localdb, tempdb, media, total_amount):
         logger.info("Purged %s", file)
         try:
             os.remove(media + file)
+            deleted_files.append(media + file)
         except Exception as e:
             logger.error("Unable to remove %s due to %s", file, e)
 
@@ -565,6 +571,8 @@ async def main() :
             os.rename(tempdb, localdb)
         else:
             os.remove(tempdb)
+    
+        
     logger.info("Finished...")
     
 

@@ -454,22 +454,23 @@ def get_paths_from_bitmap(bitmap, paths_all):
             selected_paths.append(paths_all[i])
     return selected_paths
 
-def inform_emby(files_list, updateType):
-    try:
-        emby_url = f'{emby_endpoint}/Library/Media/Updated?api_key={emby_apikey}'
-        logger.info(f"Updating to emby with event type {updateType}")
-        files_list = [{'Path': x, "UpdateType": "Created"} for x in files_list]
-        created_object = {
-            "Updates": files_list
-        }
-        logger.info("Informing created files to emby")
-        response = requests.post(emby_url, json=created_object)
-        if response.ok:
-            logger.info("Informed files to emby")
-        else:
-            logger.info(f"Failed to inform files to emby {response.status_code}")
-    except Exception as e:
-        logger.info(f"Exception happens {e}")
+def inform_emby(files_list, updateType, max_size=10):
+    emby_url = f'{emby_endpoint}/Library/Media/Updated?api_key={emby_apikey}'
+    logger.info(f"Updating to emby with event type {updateType}")
+    for i in range(0, len(files_list), max_size):
+        sub_list = files_list[i: i + max_size]
+        try:
+            created_object = {
+                "Updates":  [{'Path': x, "UpdateType": "Created"} for x in sub_list]
+            }
+            logger.info("Informing created files to emby")
+            response = requests.post(emby_url, json=created_object, timeout=60)
+            if response.ok:
+                logger.info("Informed files to emby")
+            else:
+                logger.info(f"Failed to inform files to emby {response.status_code}")
+        except Exception as e:
+            logger.info(f"Exception happens {e}")
 
 async def main() :
     parser = argparse.ArgumentParser()
@@ -591,12 +592,12 @@ async def main() :
     logger.info("Informing emby")
     
     if len(created_files) > 0:
-        logger.info(f"File created {created_files}")
+        logger.info(f"{len(created_files)} File created")
         inform_emby(created_files, "Created")
         created_files.clear()
 
     if len(deleted_files) > 0:
-        logger.info(f"File deleted {deleted_files}")
+        logger.info(f"{len(deleted_files)} File deleted")
         inform_emby(deleted_files, "Deleted")
         deleted_files.clear()
     

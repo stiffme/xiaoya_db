@@ -20,7 +20,8 @@ from aiohttp import ClientSession, TCPConnector
 import aiosqlite
 import aiofiles.os as aio_os
 import requests
-
+import requests.adapters
+from urllib3.util.retry import Retry
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
@@ -399,7 +400,8 @@ async def purge_removed_files(localdb, tempdb, media, total_amount):
         logger.info("Purged %s", file)
         try:
             os.remove(media + file)
-            deleted_files.append(media + file)
+            if str(file).lower().endswith('.strm'):
+                deleted_files.append(media + file)
         except Exception as e:
             logger.error("Unable to remove %s due to %s", file, e)
 
@@ -456,7 +458,15 @@ def get_paths_from_bitmap(bitmap, paths_all):
 
 def inform_emby(files_list, updateType, max_size=10):
     emby_url = f'{emby_endpoint}/Library/Media/Updated?api_key={emby_apikey}'
-    logger.info(f"Updating to emby with event type {updateType}")
+    logger.info(f"Updating to emby with event type {updateType}") 
+    session = requests.Session()
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[502, 503, 504],
+        allowed_methods={'POST'}
+    )
+    session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retry))
     for i in range(0, len(files_list), max_size):
         sub_list = files_list[i: i + max_size]
         try:
@@ -464,7 +474,7 @@ def inform_emby(files_list, updateType, max_size=10):
                 "Updates":  [{'Path': x, "UpdateType": "Created"} for x in sub_list]
             }
             logger.info("Informing created files to emby")
-            response = requests.post(emby_url, json=created_object, timeout=60)
+            response = session.post(emby_url, json=created_object, timeout=60)
             if response.ok:
                 logger.info("Informed files to emby")
             else:

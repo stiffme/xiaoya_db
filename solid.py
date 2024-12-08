@@ -475,7 +475,7 @@ def inform_emby(files_list, updateType, max_size=10):
             }
             response = session.post(emby_url, json=created_object, timeout=60)
             if response.ok:
-                logger.info("Informed files to emby")
+                logger.info(f"Informed files to emby {i}")
             else:
                 logger.info(f"Failed to inform files to emby {response.status_code}")
         except Exception as e:

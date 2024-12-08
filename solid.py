@@ -473,7 +473,6 @@ def inform_emby(files_list, updateType, max_size=10):
             created_object = {
                 "Updates":  [{'Path': x, "UpdateType": "Created"} for x in sub_list]
             }
-            logger.info("Informing created files to emby")
             response = session.post(emby_url, json=created_object, timeout=60)
             if response.ok:
                 logger.info("Informed files to emby")
@@ -494,8 +493,6 @@ async def main() :
     parser.add_argument("--all", action=argparse.BooleanOptionalAction, type=bool, default=False, help="Download all folders [Default: %(default)s]")
     parser.add_argument("--location", metavar="<folder>", type=str, default=None, required=None, help="Path to store database files [Default: %(default)s]")
     parser.add_argument('--paths', metavar="<file>", type=str, help='Bitmap of paths or a file containing paths to be selected (See paths.example)')
-
-
 
     args = parser.parse_args()
     if args.debug == True:

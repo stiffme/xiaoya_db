@@ -461,8 +461,8 @@ def inform_emby(files_list, updateType, max_size=10):
     logger.info(f"Updating to emby with event type {updateType}") 
     session = requests.Session()
     retry = Retry(
-        total=5,
-        backoff_factor=1,
+        total=60,
+        backoff_factor=10,
         status_forcelist=[502, 503, 504],
         allowed_methods={'POST'}
     )
@@ -471,9 +471,9 @@ def inform_emby(files_list, updateType, max_size=10):
         sub_list = files_list[i: i + max_size]
         try:
             created_object = {
-                "Updates":  [{'Path': x, "UpdateType": "Created"} for x in sub_list]
+                "Updates":  [{'Path': x, "UpdateType": updateType} for x in sub_list]
             }
-            response = session.post(emby_url, json=created_object, timeout=60)
+            response = session.post(emby_url, json=created_object, timeout=(1,60))
             if response.ok:
                 logger.info(f"Informed files to emby {i}")
             else:

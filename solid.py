@@ -457,7 +457,7 @@ def get_paths_from_bitmap(bitmap, paths_all):
     return selected_paths
 
 def inform_emby(files_list, updateType, max_size=10):
-    logger.info(f"Informing with {updateType}, content is {files_list}")
+    # logger.info(f"Informing with {updateType}, content is {files_list}")
     emby_url = f'{emby_endpoint}/Library/Media/Updated?api_key={emby_apikey}'
     logger.info(f"Updating to emby with event type {updateType}") 
     session = requests.Session()

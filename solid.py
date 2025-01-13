@@ -248,7 +248,7 @@ async def download(file, session, **kwargs):
                         logger.debug("Finish to write file: %s", filename)
                     os.chmod(file_path, 0o777)
                     logger.info("Downloaded: %s", filename)
-                    if filename.lower().endswith('.strm') or filename.lower().endswith('.nfo'):
+                    if filename.lower().endswith('.strm'):
                         created_files.append(file_path)
                 else:
                     logger.error("Failed to download: %s [Response code: %s]", filename, response.status)
@@ -400,7 +400,7 @@ async def purge_removed_files(localdb, tempdb, media, total_amount):
         logger.info("Purged %s", file)
         try:
             os.remove(media + file)
-            if str(file).lower().endswith('.strm') or str(file).lower().endswith('.nfo'):
+            if str(file).lower().endswith('.strm'):
                 deleted_files.append(media + file)
         except Exception as e:
             logger.error("Unable to remove %s due to %s", file, e)

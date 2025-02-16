@@ -19,7 +19,9 @@ import aiohttp
 from aiohttp import ClientSession, TCPConnector
 import aiosqlite
 import aiofiles.os as aio_os
-
+import requests
+import requests.adapters
+from urllib3.util.retry import Retry
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
@@ -84,6 +86,10 @@ s_folder = [".sync"]
 
 s_ext = [".ass", ".srt", ".ssa"]
 
+emby_endpoint = os.environ.get('EMBY_ENDPOINT')
+emby_apikey = os.environ.get('EMBY_API_KEY')
+created_files = []
+deleted_files = []
 # CF blocks urllib...
 
 CUSTOM_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36"
@@ -279,6 +285,8 @@ async def download(file, session, **kwargs):
                         logger.debug("Finish to write file: %s", filename)
                     os.chmod(file_path, 0o777)
                     logger.info("Downloaded: %s", filename)
+                    if filename.lower().endswith('.strm'):
+                        created_files.append(file_path)
                 else:
                     logger.error(
                         "Failed to download: %s [Response code: %s]",
@@ -438,7 +446,7 @@ async def compare_databases(localdb, tempdb, total_amount):
         temp_filenames = set(filename[0] for filename in await cursor2.fetchall())
         gap = abs(len(temp_filenames) - total_amount)
 
-        if gap < 10 and total_amount > 0:
+        if gap < 2000 and total_amount > 0:
             if not gap == 0:
                 logger.warning(
                     "Total amount do not match: %d -> %d. But the gap %d is less than 10, purging anyway...",
@@ -462,6 +470,8 @@ async def purge_removed_files(localdb, tempdb, media, total_amount):
         logger.info("Purged %s", file)
         try:
             os.remove(media + file)
+            if str(file).lower().endswith('.strm'):
+                deleted_files.append(media + file)
         except Exception as e:
             logger.error("Unable to remove %s due to %s", file, e)
 
@@ -522,6 +532,32 @@ def get_paths_from_bitmap(bitmap, paths_all):
             selected_paths.append(paths_all[i])
     return selected_paths
 
+def inform_emby(files_list, updateType, max_size=5000):
+    # logger.info(f"Informing with {updateType}, content is {files_list}")
+    files_list.sort()
+    emby_url = f'{emby_endpoint}/Library/Media/Updated?api_key={emby_apikey}'
+    logger.info(f"Updating to emby with event type {updateType}")
+    session = requests.Session()
+    retry = Retry(
+        total=60,
+        backoff_factor=10,
+        status_forcelist=[502, 503, 504],
+        allowed_methods={'POST'}
+    )
+    session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retry))
+    for i in range(0, len(files_list), max_size):
+        sub_list = files_list[i: i + max_size]
+        try:
+            created_object = {
+                "Updates":  [{'Path': x, "UpdateType": updateType} for x in sub_list]
+            }
+            response = session.post(emby_url, json=created_object, timeout=(1,60))
+            if response.ok:
+                logger.info(f"Informed files to emby {i}")
+            else:
+                logger.info(f"Failed to inform files to emby {response.status_code}")
+        except Exception as e:
+            logger.info(f"Exception happens {e}")
 
 async def main():
     parser = argparse.ArgumentParser()
@@ -726,6 +762,18 @@ async def main():
             os.rename(tempdb, localdb)
         else:
             os.remove(tempdb)
+    logger.info("Informing emby")
+
+    if len(created_files) > 0:
+        logger.info(f"{len(created_files)} File created")
+        inform_emby(created_files, "Created")
+        created_files.clear()
+
+    if len(deleted_files) > 0:
+        logger.info(f"{len(deleted_files)} File deleted")
+        inform_emby(deleted_files, "Deleted")
+        deleted_files.clear()
+
     logger.info("Finished...")
 
 

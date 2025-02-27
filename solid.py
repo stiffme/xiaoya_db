@@ -446,7 +446,7 @@ async def compare_databases(localdb, tempdb, total_amount):
         temp_filenames = set(filename[0] for filename in await cursor2.fetchall())
         gap = abs(len(temp_filenames) - total_amount)
 
-        if gap < 2000 and total_amount > 0:
+        if gap < 200 and total_amount > 0:
             if not gap == 0:
                 logger.warning(
                     "Total amount do not match: %d -> %d. But the gap %d is less than 10, purging anyway...",
